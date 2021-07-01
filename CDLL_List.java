@@ -1,8 +1,6 @@
 import java.io.*;
 import java.util.*;
 
-import javax.lang.model.util.ElementScanner6;
-
 public class CDLL_List<T>
 {
 	private CDLL_Node<T> head;  // pointer to the front (first) element of the list
@@ -13,98 +11,35 @@ public class CDLL_List<T>
 		head = null; // compiler does this anyway. just for emphasis
 	}
 
-	// LOAD LINKED LIST FROM INCOMING FILE
-	@SuppressWarnings("unchecked")
-	public CDLL_List( String fileName, boolean orderedFlag )
-	{	head = null;
-		try
-		{
-			BufferedReader infile = new BufferedReader( new FileReader( fileName ) );
+	// LOAD LINKED LIST FORM INCOMING FILE
+	
+	public CDLL_List( String fileName, String insertionMode ) throws Exception
+	{
+			BufferedReader infile = new BufferedReader( new FileReader( fileName ) );	
 			while ( infile.ready() )
-			{
-				if (orderedFlag)
-					insertInOrder( (T)infile.readLine() );  // WILL INSERT EACH ELEM INTO IT'S SORTED POSITION
+			{	@SuppressWarnings("unchecked") 
+				T data = (T) infile.readLine(); // CAST CUASES WARNING (WHICH WE CONVENIENTLY SUPPRESS)
+				if ( insertionMode.equals("atFront") )
+					insertAtFront( data ); 	
+				else if ( insertionMode.equals( "atTail" ) )
+					insertAtTail( data ); 
 				else
-					insertAtTail( (T)infile.readLine() );  // TACK EVERY NEWELEM ONTO END OF LIST. ORIGINAL ORDER PRESERVED
+					die( "FATAL ERROR: Unrecognized insertion mode <" + insertionMode + ">. Aborting program" );
 			}
 			infile.close();
-		}
-		catch( Exception e )
-		{
-			System.out.println( "FATAL ERROR CAUGHT IN C'TOR: " + e );
-			System.exit(0);
-		}
-	}
-
-	//-------------------------------------------------------------
-
-
-
-	// ########################## Y O U   W R I T E    T H E S E    M E T H O D S ########################
-
-	// inserts new elem at front of list - pushing old elements back one place
-
-	public void insertAtFront(T data)
+	}	
+	
+	private void die( String errMsg )
 	{
-		CDLL_Node<T> newNode = new CDLL_Node<T>(data, null, null);
-		if ( head == null )
-		{
-			newNode.next = newNode;
-			newNode.prev = newNode;
-			head = newNode;
-			return;
-		}
-		CDLL_Node<T> last = head.prev;
-		newNode.next = head;
-		head.prev = newNode;
-		newNode.prev = last;
-		last.next = newNode;
-		head = newNode;
+		System.out.println( errMsg );
+		System.exit(0);
 	}
-	public void insertAtTail(T data)
-	{
-		insertAtFront(data);
-		head = head.next;
-	}
-	public boolean removeAtTail()	// RETURNS TRUE IF THERE WAS NODE TO REMOVE
-	{
-		if ( head == null )
-			return false; 
-		else if ( head.next == head )
-		{
-			head = null;
-			return true;
-		}
-		CDLL_Node<T> tmp = head.prev;
-		tmp.prev.next = head;
-		head.prev = tmp.prev;
-		return true;
-	}
+		
+	// ########################## Y O U   W R I T E / F I L L   I N   T H E S E   M E T H O D S ########################
 
-	public boolean removeAtFront() // RETURNS TRUE IF THERE WAS NODE TO REMOVE
-	{
-		head = head.next;
-		return removeAtTail(); // YOUR CODE HERE.
-	}
-
-	public String toString()
-	{
-		String toString = "";  // NO <=> DELIMITERS REQUIRED ANYWHERE IN OUTPUT
-		if ( head == null )
-			return toString;
-		CDLL_Node<T> curr = head;
-		do
-		{
-			toString += curr.data;
-			if ( curr.next != head )
-				toString += " ";
-			curr = curr.next;
-		}
-		while ( curr != head );
-		return toString;  // JUST A SPACE BETEEN ELEMENTS LIKE IN LAB3
-	}
-
-	public int size() // OF COURSE MORE EFFICIENT to KEEP COUNTER BUT YOU  MUST WRITE LOOP
+	// OF COURSE MORE EFFICIENT TO KEEP INTERNAL COUNTER BUT YOU COMPUTE IT DYNAMICALLY WITH A TRAVERSAL LOOP
+	@SuppressWarnings("unchecked")
+	public int size()
 	{
 		if ( head == null )
 			return 0;
@@ -112,167 +47,93 @@ public class CDLL_List<T>
 		do
 		{
 			++count;
-			curr = curr.next;
+			curr = curr.getNext();
 		} 
 		while ( curr != head );
 		return count;
 	}
 
-	public boolean empty()
-	{
-		return ( size() != 0 ) ? false:true;  
-	}
 
+	// TACK A NEW NODE ONTO THE FRONT OF THE LIST
+	@SuppressWarnings("unchecked")
+	public void insertAtFront(T data)
+	{
+		// BASE CASE WRITTEN FOR YOU
+		CDLL_Node<T> newNode = new CDLL_Node( data,null,null);
+		if (head==null)
+		{
+			newNode.setNext( newNode );
+			newNode.setPrev( newNode );
+			head = newNode;
+			return;
+		}
+		CDLL_Node<T> last = head.getPrev();
+		newNode.setNext( head );
+		head.setPrev( newNode );
+		newNode.setPrev( last );
+		last.setNext( newNode );	
+		head = newNode;
+	}
+	
+	// TACK ON NEW NODE AT END OF LIST
+	@SuppressWarnings("unchecked")
+	public void insertAtTail(T data)
+	{
+		// BASE CASE WRITTEN FOR YOU
+		CDLL_Node<T> newNode = new CDLL_Node( data,null,null);
+		if (head==null)
+		{
+			newNode.setNext( newNode );
+			newNode.setPrev( newNode );
+			head = newNode;
+			return;
+		}
+		CDLL_Node<T> last = head.getPrev();
+		last.setNext( newNode );
+		newNode.setPrev( last );
+		newNode.setNext( head );
+		head.setPrev( newNode );
+		
+		// NOT EMPTY. INSERT NEW NODE AFTER THE LAST/TAIL NODE
+	}
+	
+	// RETURN TRUE/FALSE THIS LIST CONTAINS A NODE WITH DATA EQUALS KEY
 	public boolean contains( T key )
 	{
-		return ( search(key) != null ) ? true:false;  
+		return ( search(key) != null ) ? true:false;
 	}
 
+	// RETURN REF TO THE FIRST NODE (SEARCH CLOCKWISE FOLLOWING next) THAT CONTAINS THIS KEY. DO -NOT- RETURN REF TO KEY ISIDE NODE
+	// RETURN NULL IF NOT FOUND
 	public CDLL_Node<T> search( T key )
 	{
-		if ( head == null )
-			return null;
 		CDLL_Node<T> curr = head;
 		do
 		{
-			if ( curr.data.equals(key) )
+			if ( curr.getData().equals(key) )
 				return curr;
 			else
-				curr = curr.next;
-		} 
-		while ( curr != head );
-		return null; 
-	}
-
-	@SuppressWarnings("unchecked")  //CAST TO COMPARABLE THROWS WARNING
-	public void insertInOrder(T  data)
-	{
-		Comparable<T> comp = ( Comparable<T> ) data;
-		if ( head == null || comp.compareTo( head.data ) < 0 )
-		{
-			insertAtFront(data);
-			return;
-		}
-		else if ( comp.compareTo( head.prev.data ) > 0 )
-		{
-			insertAtTail(data);
-			return;
-		}
-		CDLL_Node<T> curr = head;
-		do
-		{
-			if ( comp.compareTo( curr.next.data ) < 0 )
-				break;
-			curr = curr.next;
-		} 
-		while ( curr != head && comp.compareTo( curr.next.data ) > 0 );
-		CDLL_Node<T> tmp = new CDLL_Node<T>( data, curr, curr.next );
-		curr.next = tmp;
-		tmp.next.prev = tmp;
-	}
-
-	public boolean remove(T key)
-	{
-		if ( head == null )
-			return false; 
-		if ( head.data.equals(key) )
-		{
-			removeAtFront();
-			return true;
-		}
-		CDLL_Node<T> curr = head, prev = null;
-		while ( !curr.data.equals(key) )
-		{
-			if ( curr.next == head )
-				return false;
-			prev = curr;
-			curr = curr.next;
-		}
-		prev.next = curr.next;
-		prev.next.prev = prev;
-		return true;
-	}
-
-
-	public CDLL_List<T> union( CDLL_List<T> other )
-	{
-		CDLL_List<T> union = new CDLL_List<T>();
-		CDLL_Node<T> curr = head;
-		CDLL_Node<T> newNode = other.head;
-		do
-		{
-			union.insertInOrder( (T) curr.data );
-			curr = curr.next;
-		} while ( curr != head );
-		do
-		{
-			if ( !union.contains( (T) newNode.data ) )
-				union.insertInOrder( (T) newNode.data );
-			newNode = newNode.next;
-		} while ( newNode != other.head );
-		return union;
-	}
-	public CDLL_List<T> inter( CDLL_List<T> other )
-	{
-		CDLL_List<T> inter = new CDLL_List<T>();
-		CDLL_Node<T> curr = head;
-		do
-		{
-			if ( other.contains( (T) curr.data ) && !inter.contains( (T) curr.data ) )
-				inter.insertInOrder( (T) curr.data );
-			curr = curr.next;
+				curr = curr.getNext();
 		}
 		while ( curr != head );
-		return inter;
+		return null;
 	}
-	public CDLL_List<T> diff( CDLL_List<T> other )
+	
+	// RETURNS CONATENATION OF CLOCKWISE TRAVERSAL
+	@SuppressWarnings("unchecked")
+	public String toString()
 	{
-		CDLL_List<T> diff = new CDLL_List<T>();
+		String str = "";
 		CDLL_Node<T> curr = head;
 		do
 		{
-			if ( !other.contains( (T) curr.data ) && !diff.contains( (T) curr.data ) )
-				diff.insertInOrder( (T) curr.data );
-			curr = curr.next;
+			str += curr.getData();
+			if ( curr.getNext() != head )
+				str += "<=>";
+			curr = curr.getNext();
 		}
 		while ( curr != head );
-		return diff;
+		return str;
 	}
-	public CDLL_List<T> xor( CDLL_List<T> other )
-	{
-		return  union(other).diff(inter(other));
-	}
-
-} //END LINKEDLIST CLASS
-
-// A D D   C D L L  N O D E   C L A S S  D O W N   H E R E 
-// R E M O V E  A L L  P U B L I C  &  P R I V A T E (except toString)
-// R E M O V E  S E T T E R S  &  G E T T E R S 
-// M A K E  T O  S T R I N G  P U B L I C
-class CDLL_Node<T>
-{
-  T data;
-  CDLL_Node<T> prev, next; // EACH CDLL_Node PTS TO ITS PREV  & NEXT
-
-  CDLL_Node()
-  {
-    this( null, null, null );  // 3 FIELDS TO INIT
-  }
-
-  CDLL_Node(T data)
-  {
-    this( data, null, null);
-  }
-
-  CDLL_Node(T data, CDLL_Node<T> prev, CDLL_Node<T> next)
-  {
-    this.data = data;
-	this.prev = prev;
-    this.next = next;
-  } 
-  public String toString()
-  {
-	  return ""+ this.data;
-  } 
-	 
-}
+	
+} // END CDLL_LIST CLASS
